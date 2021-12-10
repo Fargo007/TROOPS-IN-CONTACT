@@ -4,6 +4,8 @@
 --See mission briefing for instructions on changes.
 --Now get out there and support those guys on the ground!
 
+-- Version: 6
+
 -----------------------------------------------------------------------------------
 --Configuration:
 
