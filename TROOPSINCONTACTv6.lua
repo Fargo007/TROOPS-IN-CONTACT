@@ -43,11 +43,11 @@ onstation_time = 30 --120
 -- flanking_percentage: Unquoted number representing the percentage that a main element will separate from their support elements
 -- and attempt to flank the friendlies by 90 degrees. A 0 here means never. A 100 means always. Disabled if retreat_percentage > 0.
 -- default: flanking_percentage = 50
-flanking_percentage = 100 --50
+flanking_percentage = 0 --50
 
 -- retreat_percentage: Unquoted number representing the percentage that a HEAVY OR LIGHT main element will separate from their support elements
 -- and retreat away from the engagement area.
-retreat_percentage = 0 --100
+retreat_percentage = 50 --100
 
 -- retreat_formation: How the retreat of the main element will be conducted. "On Road" or "Off Road" are recommended for starters but any valid MOOSE 
 -- formation definition can be used. "On Road" and a retreat_distance of 4000-10000 seems to show a really nice effect.
@@ -90,7 +90,7 @@ offsetZ = 400
 
 -- hit_check_interval: Unquoted number of seconds at which a recurring check is made to see if the enemy has been hit or sufficiently killed.
 -- highly recommended you leave this at 60. Too short will cause a race condition.
-hit_check_interval = 20 --60
+hit_check_interval = 60 --60
 
 -- There's no support for changing anything below this line. Caveat emptor. ;-)
 -----------------------------------------------------------------------------------
