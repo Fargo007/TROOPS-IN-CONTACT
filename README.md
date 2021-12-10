@@ -66,8 +66,8 @@ ChangeLog:
 V6+: TROOPS IN CONTACT! is now a script and a project, not a specific mission.
 
 New features added:
-# Light and Heavy both get a support element now. 
-# Flanking - Enemy main units will try to flank the friendlies 90 degrees. Configurable by a percentage of likelihood.
-# Retreat - Enemy main units will un-ass the area entirely. Configurable as to how, distance, percentage of likelihood.
-# Friendly forces can return fire (mark target with tracers) - By default there is no target mark, as the friendlies do not always have LoS. They will fire "at" the enemy, and hopefully not obliterate them. YMMV with this one. Incompatible with Flanking.
+- Light and Heavy both get a support element now. 
+- Flanking - Enemy main units will try to flank the friendlies 90 degrees. Configurable by a percentage of likelihood.
+- Retreat - Enemy main units will un-ass the area entirely. Configurable as to how, distance, percentage of likelihood.
+- Friendly forces can return fire (mark target with tracers) - By default there is no target mark, as the friendlies do not always have LoS. They will fire "at" the enemy, and hopefully not obliterate them. YMMV with this one. Incompatible with Flanking.
 
