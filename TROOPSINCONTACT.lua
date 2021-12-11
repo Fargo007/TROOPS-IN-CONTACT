@@ -49,7 +49,7 @@ flanking_percentage = 0 --50
 
 -- retreat_percentage: Unquoted number representing the percentage that a HEAVY OR LIGHT main element will separate from their support elements
 -- and retreat away from the engagement area.
-retreat_percentage = 50 --100
+retreat_percentage = 80 --100
 
 -- retreat_formation: How the retreat of the main element will be conducted. "On Road" or "Off Road" are recommended for starters but any valid MOOSE 
 -- formation definition can be used. "On Road" and a retreat_distance of 4000-10000 seems to show a really nice effect.
@@ -176,7 +176,7 @@ end
 
 
 function GoldTIC(_args)
-  env.info("TICDEBUG: GoldTIC() start...")
+  --env.info("TICDEBUG: GoldTIC() start...")
   Direction = "none"
 
   TICzones = _args
@@ -234,10 +234,10 @@ function GoldTIC(_args)
                     sgrp:OptionAlarmStateGreen()
                     sgrp:RouteGroundTo(GTFO_coord,math.random(25,55), retreat_formation,0)
                     routedGroupName = TICBaddieGroupName
-                    GTFO_coord:MarkToAll("route")
+                    --GTFO_coord:MarkToAll("route")
                     GTFO_vec2 = GTFO_coord:GetVec2()
-                    MESSAGE:New("TICDEBUG 207 - routing!: " ,125,""):ToAll()
-                    MESSAGE:New("TICDEBUG 208 - routing! green!.. retreats: " .. retreat_offset1 .. ":" .. retreat_offset2 ,125,""):ToAll()
+                    --MESSAGE:New("TICDEBUG 207 - routing!: " ,125,""):ToAll()
+                    --MESSAGE:New("TICDEBUG 208 - routing! green!.. retreats: " .. retreat_offset1 .. ":" .. retreat_offset2 ,125,""):ToAll()
                     
                   end
 
@@ -426,11 +426,11 @@ function GoldTIC(_args)
         FirePointCoord = unit1:GetOffsetCoordinate(offset1 /4 ,0,offset2 /4)
         -- FirePointCoord = unit1:GetOffsetCoordinate(offset1 * 2 ,0,offset2 * 2)
         FirePointVec2 = FirePointCoord:GetVec2()
-        local fireTask = spawngroup:TaskFireAtPoint(FirePointVec2,1,nil,3221225470,10)
+        local fireTask = spawngroup:TaskFireAtPoint(FirePointVec2,1,nil,3221225470,20)
         spawngroup:SetTask(fireTask,10)
         spawngroup:OptionAlarmStateGreen()
         spawngroup:OptionROT(ENUMS.ROT.NoReaction)           
-        FirePointCoord:MarkToAll("firepoint")
+        --FirePointCoord:MarkToAll("firepoint")
         distance_markedby_sound = "markedbymytracerfire.ogg"
         distance_marking_text = "TARGET MARKED BY MY TRACER FIRE.."               
       else
