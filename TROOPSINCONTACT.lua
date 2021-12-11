@@ -40,7 +40,7 @@ grid3zoneprefix = "grid3"
 
 -- onstation_time: The unquoted number of seconds (interval) on which a check is made to see if there is an active helicopter or plane in a TIC grid.
 -- think of this as the maximum time you would fly around and wait to be called after either heavy or light are activated.
-onstation_time = 30 --120
+onstation_time = 120 --120
 
 -- flanking_percentage: Unquoted number representing the percentage that a main element will separate from their support elements
 -- and attempt to flank the friendlies by 90 degrees. A 0 here means never. A 100 means always. Disabled if retreat_percentage > 0.
