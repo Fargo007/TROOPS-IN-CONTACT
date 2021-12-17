@@ -63,6 +63,11 @@ THE MAP DRAW ARTIFACTS IF DESIRED.
 
 ChangeLog:
 
+V7: 
+
+- Friendlies fire to mark enemy as a target by default. Time of their fire is configurable, and they issue a "CLEARED HOT" afterward. 
+- The enemy is immortal until "CLEARED HOT" is issued so don't attack prematurely. It would be rare that you had the chance to anyhow.
+
 V6+: TROOPS IN CONTACT! is now a script and a project, not a specific mission.
 
 New features added:
