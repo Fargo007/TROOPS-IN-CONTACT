@@ -4,7 +4,7 @@
 --See mission briefing for instructions on changes.
 --Now get out there and support those guys on the ground!
 
--- Version: 6
+-- Version: 7
 
 -----------------------------------------------------------------------------------
 --Configuration:
@@ -34,13 +34,14 @@ TICArea3 = "TIC-grid-3"
 -- Defaults:
 -- grid1zoneprefix = "grid1"
 -- grid2zoneprefix = "grid2"
+-- grid3zoneprefix = "grid3"
 grid1zoneprefix = "grid1"
 grid2zoneprefix = "grid2"
 grid3zoneprefix = "grid3"
 
 -- onstation_time: The unquoted number of seconds (interval) on which a check is made to see if there is an active helicopter or plane in a TIC grid.
 -- think of this as the maximum time you would fly around and wait to be called after either heavy or light are activated.
-onstation_time = 120 --120
+onstation_time = 30 --120
 
 -- flanking_percentage: Unquoted number representing the percentage that a main element will separate from their support elements
 -- and attempt to flank the friendlies by 90 degrees. A 0 here means never. A 100 means always. Disabled if retreat_percentage > 0.
@@ -60,10 +61,14 @@ retreat_formation = "Off Road"
 -- retreat_distance: Unquoted number (meters) that a retreating element will move. 4000 is recommended.
 retreat_distance = 5000 --4000
 
--- friendly_return_fire: Unquoted value, true/false. If true, friendlies will attempt to return fire. YMMV with this, as although all
--- precautions have been taken, there is a chance they will completely obliterate the enemy force before you arrive, spoiling the scenario. 
--- Not recommended if flanking is used, as friendlies seem to always engage a flanking element.
+-- friendly_return_fire: Unquoted value, true/false. If true, friendlies will return fire for target marking purposes for the amount of time
+-- indicated in friendly_fire_time, then they will cease fire, and a message "YOU ARE CLEARED HOT" will show on screen.
+-- If used, the intent is for you to listen to the radio messages, observe their fire for correlation, and prepare to engage. Default == true.
 friendly_return_fire = true
+
+-- friendly_fire_time: The number of seconds the friendlies should return fire for marking purposes. The enemy are set immortal for this period
+-- of time, so the friendlies don't obliterate them before you arrive, spoiling the scenario. Wait for "CLEARED HOT" to send ordnance.
+friendly_fire_time = 50
 
 -- bugout_delay: Unquoted number of seconds post-spawn at which a main element's flank/retreat movement will begin if called for.
 -- default: bugout_delay = 120
@@ -91,13 +96,13 @@ offsetZ = 400
 -- Any errors, the first step is to check the dcs.log in Saved Games\Logs\dcs.log
 
 -- hit_check_interval: Unquoted number of seconds at which a recurring check is made to see if the enemy has been hit or sufficiently killed.
--- highly recommended you leave this at 60. Too short will cause a race condition.
+-- highly recommended you leave this at 60. Too short will cause a race condition of overlapping voice messages.
 hit_check_interval = 60 --60
 
 -- There's no support for changing anything below this line. Caveat emptor. ;-)
 -----------------------------------------------------------------------------------
 
-env.info("TROOPS IN CONTACT v6 BY [BSD] FARGO START...")
+env.info("TROOPS IN CONTACT v7 BY [BSD] FARGO START...")
 
 last_value_4050 = 0
 
@@ -156,7 +161,18 @@ if count_support == 0 then
 end
 
 
-TICbaddieSupport = SPAWN:NewWithAlias("SUPPORT-1","convoy-TICbaddieSupport"):InitRandomizeTemplate(supportTable)
+TICbaddieSupport = SPAWN:NewWithAlias("SUPPORT-1","convoy-TICbaddieSupport"):InitRandomizeTemplate(supportTable):OnSpawnGroup(
+function (supportgrp) 
+      local immcmd = {id = 'SetImmortal',params = {value = true}}
+      supportgrp:_GetController():setCommand(immcmd)
+      local mortalTask = supportgrp:TaskFunction("SGroupMortalAgain")
+      function SGroupMortalAgain(s_mortals)
+        local immcmd = {id = 'SetImmortal',params = {value = false}}
+        s_mortals:_GetController():setCommand(immcmd)
+        --env.info("TICDEBUG: support group is mortal again!")
+      end
+      supportgrp:SetTask(mortalTask,friendly_fire_time)
+end)
 
 --FRIENDLIES:
 friendliesTable = {}
@@ -199,6 +215,17 @@ function GoldTIC(_args)
 
   TICBaddie:OnSpawnGroup(
     function( sgrp )
+    
+      local immcmd = {id = 'SetImmortal',params = {value = true}}
+      sgrp:_GetController():setCommand(immcmd)
+      local mortalTask = sgrp:TaskFunction("GroupMortalAgain")
+      function GroupMortalAgain(mortals)
+        local immcmd = {id = 'SetImmortal',params = {value = false}}
+        mortals:_GetController():setCommand(immcmd)
+        --env.info("TICDEBUG: group is mortal again!")
+      end
+      sgrp:SetTask(mortalTask,friendly_fire_time)
+      
       CharlieMike = false
       samesameIniGroup = nil
       TICBaddieUnit1 = sgrp:GetUnit(1)
@@ -248,6 +275,7 @@ function GoldTIC(_args)
                 else
                   hitsound = USERSOUND:New("goodeffectontarget2.ogg"):ToGroup(EventData.IniGroup,13)
                   samesameIniGroup = EventData.IniGroup
+                  env.info("TICDEBUG: good effect sound played")
                   return
                 end
               else
@@ -291,7 +319,7 @@ function GoldTIC(_args)
   Friendly:InitRandomizeZones(TICzones)
   Friendly:OnSpawnGroup(function (spawngroup)
 
-      spawngroup:OptionROEHoldFire()
+      --spawngroup:OptionROEHoldFire()
       local immcmd = {id = 'SetImmortal',params = {value = true}}
       spawngroup:_GetController():setCommand(immcmd)
 
@@ -420,14 +448,21 @@ function GoldTIC(_args)
       TICBaddie:SpawnFromCoordinate(TICcoord)
       _SETTINGS:SetMGRS_Accuracy(2)
 
-        --Friendly fire "toward" enemy as much as possible, without hitting them      
+        --Friendly fire at enemy, while they are immortal for friendly_fire_time      
       if friendly_return_fire == true then
         spawngroup:OptionAlarmStateGreen()
-        FirePointCoord = unit1:GetOffsetCoordinate(offset1 /4 ,0,offset2 /4)
-        -- FirePointCoord = unit1:GetOffsetCoordinate(offset1 * 2 ,0,offset2 * 2)
+        FirePointCoord = unit1:GetOffsetCoordinate(offset1 ,0,offset2)
         FirePointVec2 = FirePointCoord:GetVec2()
-        local fireTask = spawngroup:TaskFireAtPoint(FirePointVec2,1,nil,3221225470,20)
-        spawngroup:SetTask(fireTask,10)
+        local fireTask = spawngroup:TaskFireAtPoint(FirePointVec2,1,nil,3221225470,8)
+        local fireStop = spawngroup:TaskFunction("GroupHoldFire")
+        function GroupHoldFire(grp) 
+          grp:OptionROEHoldFire() 
+          MESSAGE:New(".... YOU ARE CLEARED HOT!", TICMessageShowTime - friendly_fire_time, ""):ToAll()
+          soundplayCH = USERSOUND:New("clearedhot.ogg"):ToAll()
+                            
+        end
+        spawngroup:SetTask(fireTask,1)
+        spawngroup:SetTask(fireStop,friendly_fire_time)
         spawngroup:OptionAlarmStateGreen()
         spawngroup:OptionROT(ENUMS.ROT.NoReaction)           
         --FirePointCoord:MarkToAll("firepoint")
@@ -576,4 +611,4 @@ if showTICmenu == true then
   NewSmoke = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"REQUEST NEW SMOKE",MenuCoalitionTopLevel,NewSmoke, "heavy")
   TROOPSINCONTACTcu = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"TIC Cleanup....",MenuCoalitionTopLevel,TICCleanup, "")
 end
-env.info("**** TROOPS IN CONTACT v6 by [BSD] FARGO LOADED ****")
+env.info("**** TROOPS IN CONTACT v7 by [BSD] FARGO LOADED ****")
