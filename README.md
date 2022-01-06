@@ -34,6 +34,16 @@ THE CONCERNED ZONES CAN BE MODIFIED TO SUIT (SHAPE, SIZE):
 
 **MISSION DESIGNER INSTRUCTIONS:**
 
+Loading:
+
+1. Moose must be loaded first as a MISSION START trigger. No conditions.
+2. Load the TROOPSINCONTACT.lua script as a ONCE trigger. No conditions.
+3. Load the sounds as shown here, to a country not used in your mission. No conditions.
+
+
+![Screenshot_2022-01-06_11-07-23](https://user-images.githubusercontent.com/32640017/148422097-42d3855a-a488-4541-ad75-fb187d9a7fe8.png)
+
+
 ***See the script file. There are a huge number of configurable parameters.***
 
 Top left of the map are the groups. You can control the makeup of the enemy and friendly groups entirely.
