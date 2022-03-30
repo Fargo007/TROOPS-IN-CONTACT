@@ -34,6 +34,16 @@ THE CONCERNED ZONES CAN BE MODIFIED TO SUIT (SHAPE, SIZE):
 
 **MISSION DESIGNER INSTRUCTIONS:**
 
+Loading:
+
+1. Moose must be loaded first as a MISSION START trigger. No conditions.
+2. Load the TROOPSINCONTACT.lua script as a ONCE trigger. No conditions.
+3. Load the sounds as shown here, to a country not used in your mission. No conditions.
+
+
+![Screenshot_2022-01-06_11-07-23](https://user-images.githubusercontent.com/32640017/148422097-42d3855a-a488-4541-ad75-fb187d9a7fe8.png)
+
+
 ***See the script file. There are a huge number of configurable parameters.***
 
 Top left of the map are the groups. You can control the makeup of the enemy and friendly groups entirely.
@@ -62,6 +72,11 @@ THE MAP DRAW ARTIFACTS IF DESIRED.
 **IF YOU WISH TO PORT IT TO A DIFFERENT MAP, RECREATE ALL THE ZONES, GROUPS, ETC. AND LOAD THE SCRIPT AND SOUNDS AS IS DONE HERE.**
 
 ChangeLog:
+
+V7: 
+
+- Friendlies fire to mark enemy as a target by default. Time of their fire is configurable, and they issue a "CLEARED HOT" afterward. 
+- The enemy is immortal until "CLEARED HOT" is issued so don't attack prematurely. It would be rare that you had the chance to anyhow.
 
 V6+: TROOPS IN CONTACT! is now a script and a project, not a specific mission.
 
