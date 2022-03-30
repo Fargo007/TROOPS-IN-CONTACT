@@ -180,7 +180,7 @@ friendliesSet = SET_GROUP:New():FilterCategoryGround():FilterCoalitions("blue"):
 friendliesSet:ForEachGroup(function (grp)
   table.insert(friendliesTable, grp:GetName())
 end )
-Friendly = SPAWN:New("FRIENDLIES-1"):InitHeading(0,1):InitRandomizeTemplate(friendliesTable)
+Friendly = SPAWN:NewWithAlias("FRIENDLIES-1","convoy-TICFriendlies"):InitHeading(0,1):InitRandomizeTemplate(friendliesTable)
 
 
 -- Enemy Behavior conflict - Flanking OR Retreat
@@ -191,11 +191,14 @@ end
 
 
 
-function GoldTIC(_args)
+function GoldTIC(_args,TICGridZone)
   --env.info("TICDEBUG: GoldTIC() start...")
   Direction = "none"
 
   TICzones = _args
+  TICZoneObject = TICGridZone
+  TICgroupset = SET_GROUP:New():FilterCategoryAirplane():FilterCoalitions("blue"):FilterCategoryHelicopter():FilterStart()
+  
 
   flag4050 = USERFLAG:New(4050)
   flag4050value = flag4050:Get()
@@ -273,7 +276,11 @@ function GoldTIC(_args)
                 if EventData.IniGroup == samesameIniGroup then
                   return
                 else
-                  hitsound = USERSOUND:New("goodeffectontarget2.ogg"):ToGroup(EventData.IniGroup,13)
+                  if UseTICSounds == true then
+                    hitsound = USERSOUND:New("goodeffectontarget2.ogg"):ToGroup(EventData.IniGroup,13)                    
+                  end
+                  MESSAGE:New("... From SANDMAN-2-6: good effect on target!" ,15,""):ToAll()
+                  
                   samesameIniGroup = EventData.IniGroup
                   env.info("TICDEBUG: good effect sound played")
                   return
@@ -281,9 +288,13 @@ function GoldTIC(_args)
               else
                 --env.info("TICDEBUG: red NOT in zone, weareCM2 coming :60")
                 if CharlieMike == false then
-
-                  local deadsound = USERSOUND:New("weareCM2.ogg"):ToAll()
-                  MESSAGE:New("have secondaries in the target area. All enemies appear to be down. Thanks for the support, we are CM!" ,15,""):ToAll()
+                  if UseTICSounds == true then
+                  TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)                           
+                    local deadsound = USERSOUND:New("weareCM2.ogg"):ToGroup(grp) end)
+                  end
+                  TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)                            
+                    MESSAGE:New("have secondaries in the target area. All enemies appear to be down. Thanks for the support, we are CM!" ,15,""):ToGroup(grp)
+                  end)
                   CharlieMike = true
                 end
               end
@@ -441,9 +452,10 @@ function GoldTIC(_args)
 
       local CannonFodder = CannonFodderTable[math.random(#CannonFodderTable)]
 
-      CannonFodder:SpawnFromCoordinate(cannonfoddercoord1)
-      CannonFodder:SpawnFromCoordinate(cannonfoddercoord2)
-      CannonFodder:SpawnFromCoordinate(cannonfoddercoord3)
+      CannonFodder:SpawnFromCoordinate(cannonfoddercoord1, math.random(1,359), "convoy-FRIENDLYSTATIC1")
+      CannonFodder:SpawnFromCoordinate(cannonfoddercoord2, math.random(1,359), "convoy-FRIENDLYSTATIC2")
+      CannonFodder:SpawnFromCoordinate(cannonfoddercoord3, math.random(1,359), "convoy-FRIENDLYSTATIC3")
+
 
       TICBaddie:SpawnFromCoordinate(TICcoord)
       _SETTINGS:SetMGRS_Accuracy(2)
@@ -457,9 +469,12 @@ function GoldTIC(_args)
         local fireStop = spawngroup:TaskFunction("GroupHoldFire")
         function GroupHoldFire(grp) 
           grp:OptionROEHoldFire() 
-          MESSAGE:New(".... YOU ARE CLEARED HOT!", TICMessageShowTime - friendly_fire_time, ""):ToAll()
-          soundplayCH = USERSOUND:New("clearedhot.ogg"):ToAll()
-                            
+          TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)          
+            MESSAGE:New(".... YOU ARE CLEARED HOT!", TICMessageShowTime - friendly_fire_time, ""):ToGroup(grp)
+            if UseTICSounds == true then
+              soundplayCH = USERSOUND:New("clearedhot.ogg"):ToGroup(grp)
+            end
+          end)                
         end
         spawngroup:SetTask(fireTask,1)
         spawngroup:SetTask(fireStop,friendly_fire_time)
@@ -474,18 +489,20 @@ function GoldTIC(_args)
       end
       
       friendlycoorstring = cannonfoddercoord1:ToStringMGRS(Settings)
+      TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)
 
-      MESSAGE:New("ATTACK ELEMENT, SANDMAN 26... STAND BY FOR FIVE LINE... ", TICMessageShowTime, ""):ToAll()
-      MESSAGE:New("1. TYPE 2 CONTROL, BOMB ON TARGET. MISSILES FOLLOWED BY ROCKETS & GUNS. \n2. MY POSITION " .. friendlycoorstring .. " MARKED BY " .. smokecolor .. " SMOKE!", TICMessageShowTime, ""):ToAll()
-      MESSAGE:New("3. TARGET LOCATION: " .. Direction .. " 300 to 500 METERS!", TICMessageShowTime, ""):ToAll()
-      MESSAGE:New("4. ENEMY TROOPS AND VEHICLES IN THE OPEN, " .. distance_marking_text, TICMessageShowTime, ""):ToAll()
-      MESSAGE:New("5. " .. shoulderDir .. " SHOULDER. PULL YOUR DISCRETION. DANGER CLOSE, FOXTROT WHISKEY!", TICMessageShowTime, ""):ToAll()
+        MESSAGE:New("ATTACK ELEMENT, SANDMAN 26... STAND BY FOR FIVE LINE... ", TICMessageShowTime, ""):ToGroup(grp)
+        MESSAGE:New("1. TYPE 2 CONTROL, BOMB ON TARGET. MISSILES FOLLOWED BY ROCKETS & GUNS. \n2. MY POSITION " .. friendlycoorstring .. " MARKED BY " .. smokecolor .. " SMOKE!", TICMessageShowTime, ""):ToGroup(grp)
+        MESSAGE:New("3. TARGET LOCATION: " .. Direction .. " 300 to 500 METERS!", TICMessageShowTime, ""):ToGroup(grp)
+        MESSAGE:New("4. ENEMY TROOPS AND VEHICLES IN THE OPEN, " .. distance_marking_text, TICMessageShowTime, ""):ToGroup(grp)
+        MESSAGE:New("5. " .. shoulderDir .. " SHOULDER. PULL YOUR DISCRETION. DANGER CLOSE, FOXTROT WHISKEY!", TICMessageShowTime, ""):ToGroup(grp)
+        MESSAGE:New("..reactivate TIC when ready again..", 15, ""):ToAll()
 
-      MESSAGE:New("..reactivate TIC when ready again..", 15, ""):ToAll()
+      end) --foreachgroupcompletely
+ 
       if UseTICSounds == true then
         
-        TICgroupset = SET_GROUP:New():FilterCategoryAirplane():FilterCoalitions("blue"):FilterCategoryHelicopter():FilterStart()
-        TICgroupset:ForEachGroupAlive(function (grp)
+        TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)
           soundplay1 = USERSOUND:New("5line.ogg"):ToGroup(grp,1)
           soundplay2 = USERSOUND:New("controlmarkedby.ogg"):ToGroup(grp,9)
           soundplay3 = USERSOUND:New(smoke_sound):ToGroup(grp,19)
@@ -495,7 +512,7 @@ function GoldTIC(_args)
 
         end)
       end
-  end )
+  end)
   Friendly:Spawn()
 end --function
 
@@ -506,7 +523,8 @@ function GoldTICGrid1 ()
   Grid1ZoneSet:ForEachZone(function (z)
     table.insert(Grid1Zones, z)
   end)
-  GoldTIC(Grid1Zones)
+  TicZone = ZONE:New(TICArea1)  
+  GoldTIC(Grid1Zones,TicZone)
 end
 --Grid 2
 function GoldTICGrid2 ()
@@ -515,7 +533,8 @@ function GoldTICGrid2 ()
   Grid2ZoneSet:ForEachZone(function (z)
     table.insert(Grid2Zones, z)
   end)
-  GoldTIC(Grid2Zones)
+  TicZone = ZONE:New(TICArea2)  
+  GoldTIC(Grid2Zones,TicZone)
 end
 --Grid 3
 function GoldTICGrid3 ()
@@ -524,7 +543,8 @@ function GoldTICGrid3 ()
   Grid3ZoneSet:ForEachZone(function (z)
     table.insert(Grid3Zones, z)
   end)
-  GoldTIC(Grid3Zones)
+  TicZone = ZONE:New(TICArea3)    
+  GoldTIC(Grid3Zones,TicZone)
 end
 
 function TICsetflag (arg)
@@ -553,8 +573,8 @@ end --function
 
 function TICCleanup()
 
-  local  blueunits = SET_GROUP:New():FilterActive():FilterPrefixes("FRIENDLIES"):FilterOnce()
-  local bluestatics = SET_STATIC:New():FilterPrefixes("FRIENDLY"):FilterOnce()
+  local  blueunits = SET_GROUP:New():FilterActive():FilterPrefixes("convoy-TICFriendlies"):FilterOnce()
+  local bluestatics = SET_STATIC:New():FilterPrefixes({"convoy-FRIENDLYSTATIC1"},{"convoy-FRIENDLYSTATIC2"},{"convoy-FRIENDLYSTATIC3"}):FilterOnce()
 
   blueunits:ForEachGroupAlive( function (grp)
     grp:Destroy()
@@ -565,6 +585,21 @@ function TICCleanup()
   end)
 
 end
+
+function TICSounds(_arg)
+  if _arg == "true" then
+    env.info("DEBUG: INSIDE TICSounds, arg: true" )      
+    MESSAGE:New("TIC engagements will play sound.", 15, ""):ToAll()
+    UseTICSounds = true
+  elseif _arg == "false" then
+    env.info("DEBUG: INSIDE TICSounds, arg: false" )  
+    MESSAGE:New("TIC announcement sounds are off.", 15, ""):ToAll()
+    UseTICSounds = false
+
+  end
+
+end
+
 
 function NewSmoke()
   smokecolornum = math.random(1,5)
@@ -609,6 +644,8 @@ if showTICmenu == true then
   TROOPSINCONTACTonL = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"TROOPS IN CONTACT LIGHT",MenuCoalitionTopLevel,TICsetflag, "light")
   TROOPSINCONTACTonH = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"TROOPS IN CONTACT HEAVY",MenuCoalitionTopLevel,TICsetflag, "heavy")
   NewSmoke = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"REQUEST NEW SMOKE",MenuCoalitionTopLevel,NewSmoke, "heavy")
+  SoundsOff = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"RADIO SOUNDS OFF",MenuCoalitionTopLevel,TICSounds, "false")
+  SoundsOn = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"RADIO SOUNDS ON",MenuCoalitionTopLevel,TICSounds, "true")
   TROOPSINCONTACTcu = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"TIC Cleanup....",MenuCoalitionTopLevel,TICCleanup, "")
 end
-env.info("**** TROOPS IN CONTACT v7 by [BSD] FARGO LOADED ****")
+env.info("**** TROOPS IN CONTACT v9 by [BSD] FARGO LOADED ****")
