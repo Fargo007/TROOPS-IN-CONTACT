@@ -4,7 +4,7 @@
 --See mission briefing for instructions on changes.
 --Now get out there and support those guys on the ground!
 
--- Version: 7
+-- Version: 9
 
 -----------------------------------------------------------------------------------
 --Configuration:
@@ -14,16 +14,16 @@
 showTICmenu = true
 
 -- TICMessageShowTime: unquoted number of seconds to maintain the initial contact messages on the screen. Default is 120. You can clear them by placing a map mark.
--- Using a zero will disable the initial contact text messages entirely.
-TICMessageShowTime = 120
+-- Using a zero will disable the contact text messages entirely.
+TICMessageShowTime = 120 --120
 
 -- UseTICSounds: unquoted true/false value to indicate that the initial message sounds should, or should not be played. Default is true.
 -- You must have the 20 sound files loaded into the mission. See the example trigger that does this.
 UseTICSounds = true
 
--- TIC Grid Areas (quoted string two required)
+-- TIC Grid Areas (quoted string three required)
 -- These are the larger rectangular or round zones that define a TIC patrol area in which TIC episodes can occur.
--- Defaults are "TIC-grid-1" and "TIC-grid-2". No need to change these but if you wish to use a different name, you may.
+-- Defaults are "TIC-grid-1" -2, and -3. No need to change these but if you wish to use a different name, you may.
 TICArea1 = "TIC-grid-1"
 TICArea2 = "TIC-grid-2"
 TICArea3 = "TIC-grid-3"
@@ -50,7 +50,7 @@ flanking_percentage = 0 --50
 
 -- retreat_percentage: Unquoted number representing the percentage that a HEAVY OR LIGHT main element will separate from their support elements
 -- and retreat away from the engagement area.
-retreat_percentage = 80 --100
+retreat_percentage = 1000 --100
 
 -- retreat_formation: How the retreat of the main element will be conducted. "On Road" or "Off Road" are recommended for starters but any valid MOOSE 
 -- formation definition can be used. "On Road" and a retreat_distance of 4000-10000 seems to show a really nice effect.
@@ -73,6 +73,9 @@ friendly_fire_time = 50
 -- bugout_delay: Unquoted number of seconds post-spawn at which a main element's flank/retreat movement will begin if called for.
 -- default: bugout_delay = 120
 bugout_delay = 120 --120
+
+-- bugout_announce: Unquoted value, true/false. If true, and a flank or retreat occurs, the event and direction will be announced via text msgs.
+bugout_announce = true
 
 -- x,z offset distances from friendlies of enemy contacts when they spawn. 300-400 or so are recommended but you can tune this to suit. Unquoted numbers.
 --default offsetX = 300
@@ -99,10 +102,18 @@ offsetZ = 400
 -- highly recommended you leave this at 60. Too short will cause a race condition of overlapping voice messages.
 hit_check_interval = 60 --60
 
+-- Laser codes to use, if a target lase is possible (must have LoS with the first unit of the group). Unquoted numbers in a lua table. 
+-- If you want only one, limit this table to a single entry ,e.g.
+-- lasercode = { 1772 }
+
+lasercode = { 1688, 1776, 1113, 1772 }
+
+-- time in seconds to lase. Unquoted number
+lasertime = 180
 -- There's no support for changing anything below this line. Caveat emptor. ;-)
 -----------------------------------------------------------------------------------
 
-env.info("TROOPS IN CONTACT v7 BY [BSD] FARGO START...")
+env.info("TROOPS IN CONTACT v10 BY [BSD] FARGO START...")
 
 last_value_4050 = 0
 
@@ -182,14 +193,20 @@ friendliesSet:ForEachGroup(function (grp)
 end )
 Friendly = SPAWN:NewWithAlias("FRIENDLIES-1","convoy-TICFriendlies"):InitHeading(0,1):InitRandomizeTemplate(friendliesTable)
 
+--For tracerfire marking by friendlies
+TRACERMARK = SPAWN:NewWithAlias("TRACERMARK","convoy-TRACERMARK"):InitHeading(0,1)
 
--- Enemy Behavior conflict - Flanking OR Retreat
+tracermark_groupname = "none"
+FirePointVec2 = "none"
+
+-- Enemy Behavior conflict - Flanking OR Retreat. Retreat wins.
 
 if flanking_percentage > 0 and retreat_percentage > 0 then
   flanking_percentage = 0
 end
 
-
+Retreat_Direction = "none"
+Flanking_Direction = "none"
 
 function GoldTIC(_args,TICGridZone)
   --env.info("TICDEBUG: GoldTIC() start...")
@@ -197,6 +214,7 @@ function GoldTIC(_args,TICGridZone)
 
   TICzones = _args
   TICZoneObject = TICGridZone
+  _G[TICZoneObject] = TICZoneObject 
   TICgroupset = SET_GROUP:New():FilterCategoryAirplane():FilterCoalitions("blue"):FilterCategoryHelicopter():FilterStart()
   
 
@@ -232,9 +250,11 @@ function GoldTIC(_args,TICGridZone)
       CharlieMike = false
       samesameIniGroup = nil
       TICBaddieUnit1 = sgrp:GetUnit(1)
+      _G[TICBaddieUnit1] = TICBaddieUnit1  
       TICBaddieGroupName = sgrp:GetName()
       TICBaddieUnit1Heading = sgrp:GetUnit(1):GetHeading()
       retreat_number = math.random(1,100)
+      env.info("TICDEBUG: retreat_number: " .. retreat_number)
       TICBaddieZone = ZONE_GROUP:New(sgrp:GetName(),sgrp,250)
       sgrp:HandleEvent( EVENTS.Hit  )
       function sgrp:OnEventHit( EventData )
@@ -243,11 +263,12 @@ function GoldTIC(_args,TICGridZone)
         if shooterCoalition == 2 then
 
           local DeadScheduler = SCHEDULER:New( nil, function()
+              env.info("TICDEBUG: hit_check_scheduler fires")
 
               TICBaddieZone:Scan({Object.Category.UNIT},{Unit.Category.GROUND_UNIT})
               if TICBaddieZone:CheckScannedCoalition(coalition.side.RED) == true then
                 --MESSAGE:New("DEBUG 145 - Enemies still there!" ,15,""):ToAll()
-                --env.info("DEBUG: red still in zone")
+                --env.info("TICDEBUG: red still in zone")
                 -- GOOD EFFECTS ON TARGET!
                 --retreat
                 if (retreat_number < retreat_percentage) then
@@ -255,8 +276,7 @@ function GoldTIC(_args,TICGridZone)
                   local X = TICBaddiePointVec2:GetLat()
                   local Y = TICBaddiePointVec2:GetLon() 
                   local GTFO_coord = POINT_VEC2:New( X + retreat_offset1,Y + retreat_offset2 ):GetCoordinate()
-                  
-                    
+
                   --GTFO_coord = TICBaddiePointVec2:GetCoordinate()
                   --GTFO_coord = sgrp:GetUnit(1):GetOffsetCoordinate(retreat_offset1,0,retreat_offset2)
                   
@@ -266,9 +286,12 @@ function GoldTIC(_args,TICGridZone)
                     routedGroupName = TICBaddieGroupName
                     --GTFO_coord:MarkToAll("route")
                     GTFO_vec2 = GTFO_coord:GetVec2()
-                    --MESSAGE:New("TICDEBUG 207 - routing!: " ,125,""):ToAll()
-                    --MESSAGE:New("TICDEBUG 208 - routing! green!.. retreats: " .. retreat_offset1 .. ":" .. retreat_offset2 ,125,""):ToAll()
-                    
+                    --MESSAGE:New("TICDEBUG 284 - routing!: " ,125,""):ToAll()
+                    if bugout_announce == true then
+                      TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)                                               
+                       MESSAGE:New("... From SANDMAN-2-6: Squirters on the move to the " .. Retreat_Direction .. "!" ,TICMessageShowTime,""):ToGroup(grp)
+                      end )
+                    end  
                   end
 
                 end
@@ -279,10 +302,12 @@ function GoldTIC(_args,TICGridZone)
                   if UseTICSounds == true then
                     hitsound = USERSOUND:New("goodeffectontarget2.ogg"):ToGroup(EventData.IniGroup,13)                    
                   end
-                  MESSAGE:New("... From SANDMAN-2-6: good effect on target!" ,15,""):ToAll()
+                  TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)                           
+                                                   
+                  MESSAGE:New("... From SANDMAN-2-6: good effect on target!" ,TICMessageShowTime,""):ToGroup(grp) end)      
                   
                   samesameIniGroup = EventData.IniGroup
-                  env.info("TICDEBUG: good effect sound played")
+                  --env.info("TICDEBUG: good effect sound played")
                   return
                 end
               else
@@ -318,6 +343,11 @@ function GoldTIC(_args,TICGridZone)
             function()
               sgrp:TaskRouteToVec2(ticbaddieheavyVec2,10, FORMATION.EchelonL)
               env.info("TICDEBUG: flanking! ")
+              if bugout_announce == true then             
+                TICgroupset:ForEachGroupCompletelyInZone(TICZoneObject,function (grp)                                               
+                  MESSAGE:New("... From SANDMAN-2-6: enemy is attempting to flank from the " .. Flanking_Direction .. "!" ,TICMessageShowTime,""):ToGroup(grp)
+                end )
+              end 
 
             end, {}, bugout_delay )
 
@@ -329,11 +359,29 @@ function GoldTIC(_args,TICGridZone)
 
   Friendly:InitRandomizeZones(TICzones)
   Friendly:OnSpawnGroup(function (spawngroup)
+  unit1 = spawngroup:GetUnit(1)
+  
+-- TRACERMARK
+   Tracermark_coord = unit1:GetOffsetCoordinate(-25,0,-25)
+   TRACERMARK:OnSpawnGroup(function (tmarker) 
+    _G[tracermark_groupname] = tmarker:GetName()
+    env.info("TICDEBUG: _G[tracermark_groupname]: " .. _G[tracermark_groupname])
+    tmarker:OptionAlarmStateGreen()
+      local immcmd = {id = 'SetImmortal',params = {value = true}}
+      tmarker:_GetController():setCommand(immcmd)
+        local fireStop = tmarker:TaskFunction("TmarkerHoldFire")
+        function TmarkerHoldFire(tmarker) 
+          tmarker:OptionROEHoldFire()            
+        end     
+     end)
+   TRACERMARK:SpawnFromCoordinate(Tracermark_coord)
+   
+
 
       --spawngroup:OptionROEHoldFire()
       local immcmd = {id = 'SetImmortal',params = {value = true}}
       spawngroup:_GetController():setCommand(immcmd)
-
+      
       --orig Direction_num = math.random(1,8)
       Direction_num = math.random(1,8)
       offset1 = math.random(offsetX,offsetZ)
@@ -348,6 +396,7 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = math.random(offsetX,offsetZ)
         retreat_offset1 = retreat_distance
         retreat_offset2 = 0
+        Flanking_Direction = "East"
       end
       if Direction_num == 2 then
         Direction = "NORTHEAST"
@@ -358,6 +407,7 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = math.random(offsetX,offsetZ)
         retreat_offset1 = retreat_distance
         retreat_offset2 = retreat_distance
+        Flanking_Direction = "Southeast"
       end
       if Direction_num == 3 then
         Direction = "EAST"
@@ -368,6 +418,7 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = 0
         retreat_offset1 = 0
         retreat_offset2 = retreat_distance
+        Flanking_Direction = "South"
       end
       if Direction_num == 4 then
         Direction = "SOUTHEAST"
@@ -378,6 +429,7 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = math.random(-offsetX,-offsetZ)
         retreat_offset1 = -retreat_distance
         retreat_offset2 = retreat_distance
+        Flanking_Direction = "Southwest"
       end
       if Direction_num == 5 then
         Direction = "SOUTH"
@@ -388,6 +440,8 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = math.random(-offsetX,-offsetZ)
         retreat_offset1 = -retreat_distance
         retreat_offset2 = 0
+        Flanking_Direction = "West"
+        
 
       end
       if Direction_num == 6 then
@@ -399,6 +453,8 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = math.random(-offsetX,-offsetZ)
         retreat_offset1 = -retreat_distance
         retreat_offset2 = -retreat_distance
+        Flanking_Direction = "Northwest"
+        
       end
       if Direction_num == 7 then
         Direction = "WEST"
@@ -409,6 +465,8 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = 0
         retreat_offset1 = 0
         retreat_offset2 = -retreat_distance
+        Flanking_Direction = "North"
+        
       end
       if Direction_num == 8 then
         Direction = "NORTHWEST"
@@ -419,10 +477,12 @@ function GoldTIC(_args,TICGridZone)
         flanking_offset2 = math.random(offsetX,offsetZ)
         retreat_offset1 = retreat_distance
         retreat_offset2 = -retreat_distance
+        Flanking_Direction = "Northeast"
+        
       end
-
-      unit1 = spawngroup:GetUnit(1)
-     
+      Retreat_Direction = Direction
+      --Flanking_Direction = Direction
+ 
       shouldernum = math.random(1,2)
       if shouldernum == 1 then
         shoulderDir = "LEFT"
@@ -465,6 +525,8 @@ function GoldTIC(_args,TICGridZone)
         spawngroup:OptionAlarmStateGreen()
         FirePointCoord = unit1:GetOffsetCoordinate(offset1 ,0,offset2)
         FirePointVec2 = FirePointCoord:GetVec2()
+        _G[FirePointVec2] = FirePointCoord:GetVec2()
+        _G[FirePointCoord] = FirePointCoord
         local fireTask = spawngroup:TaskFireAtPoint(FirePointVec2,1,nil,3221225470,8)
         local fireStop = spawngroup:TaskFunction("GroupHoldFire")
         function GroupHoldFire(grp) 
@@ -639,13 +701,82 @@ Check_aircraft_in_grids = SCHEDULER:New( nil, function()
 
 end, {}, onstation_time, onstation_time)
 
+function LaseTarget(lcode)
+   local TICgroupset = SET_GROUP:New():FilterCategoryAirplane():FilterCoalitions("blue"):FilterCategoryHelicopter():FilterStart()
+
+   markgroupname = _G[tracermark_groupname]
+   env.info("TICDEBUG: function TracerMark() " )
+   env.info("TICDEBUG: markname: " .. _G[tracermark_groupname])
+   markgroup = GROUP:FindByName(markgroupname)
+   markgroup:OptionROEHoldFire()
+   markgroup:OptionAlarmStateGreen()
+   markgroupcoord = markgroup:GetCoordinate()
+   
+   if markgroupcoord:IsLOS(_G[FirePointCoord]) and _G[TICBaddieUnit1]:IsAlive() then
+      --GROUP:isal
+      --DEBUG _G[FirePointCoord]:MarkToAll("firepointcoord")
+      --MESSAGE:New("Lase is possible, standby!"):ToAll()
+      laserspot = SPOT:New(markgroup:GetUnit(1))
+      laserspot:LaseOn(_G[TICBaddieUnit1],lcode,lasertime)
+      --laserspot:LaseOnCoordinate(_G[FirePointCoord], 1688, 120)
+      if laserspot:IsLasing() then
+      TICgroupset:ForEachGroupCompletelyInZone(_G[TICZoneObject],function (grp)
+              MESSAGE:New("Laser on, code " .. lcode ..  ", holding for " .. lasertime .. "  seconds!"):ToGroup(grp,TICMessageShowTime) end)             
+      end
+      
+   else
+      TICgroupset:ForEachGroupCompletelyInZone(_G[TICZoneObject],function (grp)
+       MESSAGE:New("Negative Lase, unable.."):ToAll() end) 
+        
+    return
+   end
+   
+end --function
+
+function TracerMark()
+   local TICgroupset = SET_GROUP:New():FilterCategoryAirplane():FilterCoalitions("blue"):FilterCategoryHelicopter():FilterStart()
+   
+   markgroupname = _G[tracermark_groupname]
+   env.info("TICDEBUG: function TracerMark() " )
+   env.info("TICDEBUG: markname: " .. _G[tracermark_groupname])
+   markgroup = GROUP:FindByName(markgroupname)
+   markgroup:OptionROEHoldFire()
+   markgroup:OptionAlarmStateGreen()
+      TICgroupset:ForEachGroupCompletelyInZone(_G[TICZoneObject],function (grp)                           
+      --local deadsound = USERSOUND:New("weareCM2.ogg"):ToGroup(grp) 
+        MESSAGE:New("Roger that, marking enemy direction with 50 cal!"):ToGroup(grp)      
+       end)
+     --end
+     
+    markTask = markgroup:TaskFireAtPoint(_G[FirePointVec2],1,25,nil,68)
+    local fireStop = markgroup:TaskFunction("MarkGroupHoldFire")
+    function MarkGroupHoldFire(grp) 
+      grp:OptionROEHoldFire()
+      env.info("TICDEBUG: HOLD FIRE!") 
+      MESSAGE:New("TRACERS OUT, HOLDING FIRE... "):ToAll()
+         
+    end
+          
+    markgroup:SetTask(markTask,1)
+    markgroup:SetTask(fireStop,15)
+
+  end
+
+
 if showTICmenu == true then
   local MenuCoalitionTopLevel = MENU_COALITION:New( coalition.side.BLUE, " Troops in Contact!" )
   TROOPSINCONTACTonL = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"TROOPS IN CONTACT LIGHT",MenuCoalitionTopLevel,TICsetflag, "light")
   TROOPSINCONTACTonH = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"TROOPS IN CONTACT HEAVY",MenuCoalitionTopLevel,TICsetflag, "heavy")
   NewSmoke = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"REQUEST NEW SMOKE",MenuCoalitionTopLevel,NewSmoke, "heavy")
+  MarkTargetTracers = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"MARK TGT W/TRACERS",MenuCoalitionTopLevel,TracerMark, "")
+  local MenuCoalitionLaser = MENU_COALITION:New( coalition.side.BLUE, "MARK TGT W/LASER", MenuCoalitionTopLevel)
+  
+  for i=1,#lasercode do
+    MENU_COALITION_COMMAND:New( coalition.side.BLUE,"CODE: " .. lasercode[i] ,MenuCoalitionLaser,LaseTarget, lasercode[i])
+  end
+  
   SoundsOff = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"RADIO SOUNDS OFF",MenuCoalitionTopLevel,TICSounds, "false")
   SoundsOn = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"RADIO SOUNDS ON",MenuCoalitionTopLevel,TICSounds, "true")
   TROOPSINCONTACTcu = MENU_COALITION_COMMAND:New( coalition.side.BLUE,"TIC Cleanup....",MenuCoalitionTopLevel,TICCleanup, "")
 end
-env.info("**** TROOPS IN CONTACT v9 by [BSD] FARGO LOADED ****")
+env.info("**** TROOPS IN CONTACT v10 by [BSD] FARGO LOADED ****")
