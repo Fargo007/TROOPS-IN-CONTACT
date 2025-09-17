@@ -1,4 +1,4 @@
-# TROOPS-IN-CONTACT
+# TROOPS-IN-CONTACT version 13
 
 TROOPS IN CONTACT! 
 
@@ -17,7 +17,7 @@ TROOPS IN CONTACT! Seeks to provide an immersive situation in which aircraft of 
 ![Screenshot_2021-11-09_13-03-04 png 78dfea9dfd84f5debdad71ba7fc0a83c](https://user-images.githubusercontent.com/32640017/145649298-2674d636-79d9-4506-874b-143fc1a10e06.png)
 
 
-![Screenshot_2021-12-03_12-41-59 png 6244fa5440e96eced7e56591c51a3ca3](https://user-images.githubusercontent.com/32640017/145649309-68a8519a-51a4-4d2e-a3ad-f51434cdb4c8.png)
+![Screenshot_2021-12-03_12-41-59 png 6244fa5440e96eced7e56591c51a3ca3](ticmenu.png)
 
 
 3 - ENTER ONE OF THE CHOSEN GRIDS AND REMAIN IN IT. YOU WILL GET TASKING....
@@ -54,11 +54,11 @@ These are **EXAMPLES**.  It's up to **_YOU_** to craft friendly and enemy groups
 
 Groups and statics that are to be included must be named according to a convention:
 
-FRIENDLIES-1, FRIENDLIES-2, etc.
-FRIENDLYSTATIC-1, FRIENDLYSTATIC-2, etc.
-HEAVY-1, HEAVY-2, etc.
-LIGHT-1, LIGHT-2, etc.
-SUPPORT-1, SUPPORT-2, etc.
+TICFRIENDLIES-1, TICFRIENDLIES-2, etc.
+TICFRIENDLYSTATIC-1, TICFRIENDLYSTATIC-2, etc.
+TICHEAVY-1, TICHEAVY-2, etc.
+TICLIGHT-1, TICLIGHT-2, etc.
+TICSUPPORT-1, TICSUPPORT-2, etc.
  Each category must have minimum 1, and that one must be named with the appropriate string, and "-1". There are no upper limits on any category, only a minimum.
 
 
@@ -80,9 +80,10 @@ V7:
 
 V6+: TROOPS IN CONTACT! is now a script and a project, not a specific mission.
 
-New features added:
-- Light and Heavy both get a support element now. 
-- Flanking - Enemy main units will try to flank the friendlies 90 degrees. Configurable by a percentage of likelihood.
-- Retreat - Enemy main units will un-ass the area entirely. Configurable as to how, distance, percentage of likelihood.
-- Friendly forces can return fire (mark target with tracers) - By default there is no target mark, as the friendlies do not always have LoS. They will fire "at" the enemy, and hopefully not obliterate them. YMMV with this one. Incompatible with Flanking. This works far better on Syria than Caucasus for some reason.
+New features added (V13):
+- Laser target marking with configurable codes (if Line of Sight exists)
+- Marking the target for you with tracer fire. If they can't see it, they will fire in the general direction.
+- Friendlies will mark themselves with an IR Strobe for NVG usage. Initially and also upon request.
+- Expanded Cleanup that works very well.
+- Direct radio broadcast support. Rather that STTS_SRS streaming (using the EXE), it plays the radio messages directly. I'm not supporting that anymore but it's easy to change the play function on your own if you wish.
 
